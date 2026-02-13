@@ -1,0 +1,10 @@
+{
+  "editor.formatOnSave": true,
+  "python.defaultInterpreterPath": "python",
+  "python.linting.enabled": true,
+  "python.formatting.provider": "none",
+  "ruff.enable": true,
+  "ruff.lint.enable": true,
+  "ruff.format.enable": true,
+  "editor.defaultFormatter": "charliermarsh.ruff"
+}
