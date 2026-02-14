@@ -18,6 +18,26 @@ The intended demo path for this scaffold is:
 4. Run a verifier stub against Kubernetes state assumptions.
 5. Display progress and status through the CLI banner/path.
 
+```mermaid
+flowchart TD
+    A[Mock Telemetry Event] --> B[Rule Engine Evaluate]
+    B --> C{Remote AI Configured}
+    C -->|Yes| D[AI Intent Planner HTTP]
+    C -->|No| E[Local Event Classifier]
+    C -->|Error| E
+    E --> F[TinyLlama or Rule Fallback]
+    D --> G[Intent Output]
+    F --> G
+    G --> H[Kinetic Event Loop Tick]
+    H --> I[CLI Demo Output]
+```
+
+## Diagram rendering
+
+- Use Markdown Preview (`Ctrl+Shift+V`) for this README and `docs/golden-path.md`.
+- Use a Mermaid-specific preview for `docs/golden-path.mmd`.
+- If preview fails with `No diagram type detected`, the viewer is parsing full Markdown as Mermaid; switch to Markdown Preview.
+
 ## Run the project
 
 ```bash
