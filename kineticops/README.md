@@ -21,11 +21,32 @@ The intended demo path for this scaffold is:
 ## Run the project
 
 ```bash
-python -m venv .venv
+py -3.13 -m venv .venv
 # Windows: .venv\\Scripts\\activate
 # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 python main.py
+```
+
+Recommended Python version: 3.13.x
+
+Optional dev dependencies (tests + local tensor/NumPy interop):
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+Quick verify (PyTorch + tests):
+
+```bash
+python -c "import torch; print(torch.__version__)"
+python -m pytest -q
+```
+
+Windows one-command bootstrap + verify:
+
+```powershell
+pwsh -ExecutionPolicy Bypass -File .\scripts\bootstrap_verify.ps1
 ```
 
 ## AI planner (stub)
