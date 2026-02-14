@@ -15,6 +15,7 @@ class LocalEventClassifier:
 
     def __init__(self) -> None:
         self.model_enabled = os.getenv("KINETICOPS_LOCAL_CLASSIFIER_ENABLED", "1") == "1"
+        self.strict_json = os.getenv("KINETICOPS_LOCAL_CLASSIFIER_STRICT_JSON", "1") == "1"
         self.primary_model = os.getenv(
             "KINETICOPS_LOCAL_CLASSIFIER_MODEL", "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
         )
@@ -22,7 +23,7 @@ class LocalEventClassifier:
         self._tokenizer: Any | None = None
         self._model: Any | None = None
 
-    def classify(self, event: dict[str, Any]) -> dict[str, str]:
+    def classify(self, event: dict[str, Any]) -> dict[str, Any]:
         """Return normalized classification and reason for an event."""
         event_text = self._event_text(event)
 
@@ -36,7 +37,7 @@ class LocalEventClassifier:
         rule_result["source"] = "rules"
         return rule_result
 
-    def _classify_with_primary_model(self, event_text: str) -> dict[str, str] | None:
+    def _classify_with_primary_model(self, event_text: str) -> dict[str, Any] | None:
         try:
             import torch
             from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -52,7 +53,7 @@ class LocalEventClassifier:
             prompt = (
                 "Classify this event into one label: "
                 "NetworkIssue, ServiceFailure, AuthFailure, StorageWarning. "
-                "Respond as JSON with keys classification and reason. "
+                "Return ONLY JSON with keys classification, reason, and confidence (0..1). "
                 f"Event: {event_text}"
             )
             inputs = self._tokenizer(prompt, return_tensors="pt")
@@ -63,7 +64,7 @@ class LocalEventClassifier:
         except Exception:
             return None
 
-    def _parse_output(self, text: str) -> dict[str, str] | None:
+    def _parse_output(self, text: str) -> dict[str, Any] | None:
         json_match = re.search(r"\{.*\}", text, flags=re.DOTALL)
         if json_match:
             try:
@@ -72,9 +73,17 @@ class LocalEventClassifier:
                     label = self._normalize_label(str(data.get("classification", "")))
                     reason = str(data.get("reason", "model_classification"))
                     if label is not None:
-                        return {"classification": label, "reason": reason}
+                        confidence = self._normalize_confidence(data.get("confidence"), 0.85)
+                        return {
+                            "classification": label,
+                            "reason": reason,
+                            "confidence": confidence,
+                        }
             except json.JSONDecodeError:
                 pass
+
+        if self.strict_json:
+            return None
 
         label_match = re.search(r"classification\s*:\s*([A-Za-z]+)", text, flags=re.IGNORECASE)
         reason_match = re.search(r"reason\s*:\s*(.+)", text, flags=re.IGNORECASE)
@@ -82,11 +91,11 @@ class LocalEventClassifier:
             label = self._normalize_label(label_match.group(1))
             if label is not None:
                 reason = reason_match.group(1).strip() if reason_match else "model_classification"
-                return {"classification": label, "reason": reason}
+                return {"classification": label, "reason": reason, "confidence": 0.6}
 
         return None
 
-    def _classify_with_rules(self, event_text: str) -> dict[str, str]:
+    def _classify_with_rules(self, event_text: str) -> dict[str, Any]:
         lowered = event_text.lower()
 
         auth_terms = ("auth", "token", "unauthorized", "forbidden", "permission", "login")
@@ -94,12 +103,28 @@ class LocalEventClassifier:
         storage_terms = ("disk", "storage", "volume", "i/o", "filesystem", "capacity")
 
         if any(term in lowered for term in auth_terms):
-            return {"classification": "AuthFailure", "reason": "keyword_auth_signal"}
+            return {
+                "classification": "AuthFailure",
+                "reason": "keyword_auth_signal",
+                "confidence": 0.82,
+            }
         if any(term in lowered for term in storage_terms):
-            return {"classification": "StorageWarning", "reason": "keyword_storage_signal"}
+            return {
+                "classification": "StorageWarning",
+                "reason": "keyword_storage_signal",
+                "confidence": 0.78,
+            }
         if any(term in lowered for term in network_terms):
-            return {"classification": "NetworkIssue", "reason": "keyword_network_signal"}
-        return {"classification": "ServiceFailure", "reason": "default_service_fallback"}
+            return {
+                "classification": "NetworkIssue",
+                "reason": "keyword_network_signal",
+                "confidence": 0.8,
+            }
+        return {
+            "classification": "ServiceFailure",
+            "reason": "default_service_fallback",
+            "confidence": 0.55,
+        }
 
     def _event_text(self, event: dict[str, Any]) -> str:
         signal = str(event.get("signal", ""))
@@ -122,3 +147,14 @@ class LocalEventClassifier:
             if cleaned == candidate.lower():
                 return candidate
         return None
+
+    def _normalize_confidence(self, value: Any, default: float) -> float:
+        try:
+            parsed = float(value)
+        except (TypeError, ValueError):
+            return default
+        if parsed < 0:
+            return 0.0
+        if parsed > 1:
+            return 1.0
+        return parsed

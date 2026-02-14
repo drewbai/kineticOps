@@ -91,5 +91,6 @@ class AIIntentPlanner:
             "classification": local["classification"],
             "reason": local["reason"],
             "source": local["source"],
+            "confidence": local["confidence"],
             "event": event,
         }

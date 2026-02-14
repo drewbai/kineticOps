@@ -55,6 +55,7 @@ pwsh -ExecutionPolicy Bypass -File .\scripts\bootstrap_verify.ps1
 - If `KINETICOPS_AI_ENDPOINT` is set, `RuleEngine` attempts a model-backed plan via HTTP.
 - If unset or unavailable, it falls back to local event classification.
 - Local fallback chain: TinyLlama (`interpreter/local_classifier.py`) -> deterministic keyword rules.
+- Local classification emits `classification`, `reason`, `source`, and `confidence` (0..1).
 
 Optional environment variables:
 
@@ -65,6 +66,7 @@ Optional environment variables:
 - `KINETICOPS_LOCAL_CLASSIFIER_ENABLED` (`1` default, set `0` to force keyword-rule fallback)
 - `KINETICOPS_LOCAL_CLASSIFIER_MODEL` (default: `TinyLlama/TinyLlama-1.1B-Chat-v1.0`)
 - `KINETICOPS_LOCAL_CLASSIFIER_MAX_TOKENS` (default: `64`)
+- `KINETICOPS_LOCAL_CLASSIFIER_STRICT_JSON` (`1` default; strict parser for model output)
 
 Suggested GitHub Models setup:
 
