@@ -53,7 +53,8 @@ pwsh -ExecutionPolicy Bypass -File .\scripts\bootstrap_verify.ps1
 
 - The interpreter now includes a minimal AI planner stub in `interpreter/ai_planner.py`.
 - If `KINETICOPS_AI_ENDPOINT` is set, `RuleEngine` attempts a model-backed plan via HTTP.
-- If unset or unavailable, it falls back to a deterministic local intent.
+- If unset or unavailable, it falls back to local event classification.
+- Local fallback chain: TinyLlama (`interpreter/local_classifier.py`) -> deterministic keyword rules.
 
 Optional environment variables:
 
@@ -61,6 +62,9 @@ Optional environment variables:
 - `KINETICOPS_AI_MODEL` (default: `meta/llama-4-maverick-17b-128e-instruct-fp8`)
 - `KINETICOPS_AI_TIMEOUT` (default: `8` seconds)
 - `KINETICOPS_AI_API_KEY` (falls back to `GITHUB_TOKEN`)
+- `KINETICOPS_LOCAL_CLASSIFIER_ENABLED` (`1` default, set `0` to force keyword-rule fallback)
+- `KINETICOPS_LOCAL_CLASSIFIER_MODEL` (default: `TinyLlama/TinyLlama-1.1B-Chat-v1.0`)
+- `KINETICOPS_LOCAL_CLASSIFIER_MAX_TOKENS` (default: `64`)
 
 Suggested GitHub Models setup:
 
