@@ -58,6 +58,8 @@ python scripts/run_demo.py --scenario all
 
 Other options: `mock`, `network`, `auth`, `storage`, `service`.
 
+Pitch + live demo talk track: `docs/pitch-demo.md`.
+
 Recommended Python version: 3.13.x
 
 Optional dev dependencies (tests + local tensor/NumPy interop):
