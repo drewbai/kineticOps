@@ -1,0 +1,17 @@
+# Golden Path Diagram
+
+Use Markdown preview (`Ctrl+Shift+V`) to render this Mermaid diagram.
+
+```mermaid
+flowchart TD
+    A["Mock Telemetry Event"] --> B["Rule Engine Evaluate"]
+    B --> C{"Remote AI Configured"}
+    C -->|yes| D["AI Intent Planner HTTP"]
+    C -->|no| E["Local Event Classifier"]
+    C -->|error| E
+    E --> F["TinyLlama or Rule Fallback"]
+    D --> G["Intent Output"]
+    F --> G
+    G --> H["Kinetic Event Loop Tick"]
+    H --> I["CLI Demo Output"]
+```
