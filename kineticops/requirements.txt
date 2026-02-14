@@ -3,3 +3,5 @@ pyyaml
 kubernetes
 rich
 ruff
+transformers
+sentencepiece

@@ -6,6 +6,8 @@ from typing import Any
 
 import requests
 
+from interpreter.local_classifier import LocalEventClassifier
+
 
 class AIIntentPlanner:
     """Minimal LLM-backed planner with safe local fallback."""
@@ -17,6 +19,7 @@ class AIIntentPlanner:
         )
         self.timeout_seconds = float(os.getenv("KINETICOPS_AI_TIMEOUT", "8"))
         self.api_key = os.getenv("KINETICOPS_AI_API_KEY", os.getenv("GITHUB_TOKEN", ""))
+        self.local_classifier = LocalEventClassifier()
 
     def enabled(self) -> bool:
         """Return whether remote AI planning is configured."""
@@ -26,8 +29,7 @@ class AIIntentPlanner:
     def plan(self, event: dict[str, Any]) -> dict[str, Any]:
         """Return action intent predicted by a model endpoint."""
         if not self.enabled():
-            # TODO: Replace with richer local policy fallback for offline runs.
-            return self._fallback_intent(event)
+            return self.local_plan(event)
 
         payload = {
             "model": self.model,
@@ -52,14 +54,17 @@ class AIIntentPlanner:
         }
 
         # TODO: Add retries and strict response schema validation.
-        response = requests.post(
-            self.endpoint,
-            json=payload,
-            headers=headers,
-            timeout=self.timeout_seconds,
-        )
-        response.raise_for_status()
-        data = response.json()
+        try:
+            response = requests.post(
+                self.endpoint,
+                json=payload,
+                headers=headers,
+                timeout=self.timeout_seconds,
+            )
+            response.raise_for_status()
+            data = response.json()
+        except Exception:
+            return self.local_plan(event)
 
         if isinstance(data.get("intent"), dict):
             return data["intent"]
@@ -71,17 +76,21 @@ class AIIntentPlanner:
                 try:
                     intent = json.loads(content)
                     if isinstance(intent, dict):
-                        return intent
+                        if "intent" in intent:
+                            return intent
                 except json.JSONDecodeError:
                     pass
 
-        return self._fallback_intent(event)
+        return self.local_plan(event)
 
-    def _fallback_intent(self, event: dict[str, Any]) -> dict[str, Any]:
-        """Build a deterministic fallback intent from simple event cues."""
-        signal = str(event.get("signal", "unknown"))
+    def local_plan(self, event: dict[str, Any]) -> dict[str, Any]:
+        """Build a local classification-first intent for offline reliability."""
+        local = self.local_classifier.classify(event)
         return {
-            "intent": "inspect",
-            "reason": f"fallback_from_signal:{signal}",
+            "intent": "classify_event",
+            "classification": local["classification"],
+            "reason": local["reason"],
+            "source": local["source"],
+            "confidence": local["confidence"],
             "event": event,
         }

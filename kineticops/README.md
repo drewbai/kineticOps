@@ -28,6 +28,16 @@ pip install -r requirements.txt
 python main.py
 ```
 
+## Demo script
+
+Run a scenario-based demo that prints event + generated intent:
+
+```bash
+python scripts/run_demo.py --scenario all
+```
+
+Other options: `mock`, `network`, `auth`, `storage`, `service`.
+
 Recommended Python version: 3.13.x
 
 Optional dev dependencies (tests + local tensor/NumPy interop):
@@ -53,7 +63,9 @@ pwsh -ExecutionPolicy Bypass -File .\scripts\bootstrap_verify.ps1
 
 - The interpreter now includes a minimal AI planner stub in `interpreter/ai_planner.py`.
 - If `KINETICOPS_AI_ENDPOINT` is set, `RuleEngine` attempts a model-backed plan via HTTP.
-- If unset or unavailable, it falls back to a deterministic local intent.
+- If unset or unavailable, it falls back to local event classification.
+- Local fallback chain: TinyLlama (`interpreter/local_classifier.py`) -> deterministic keyword rules.
+- Local classification emits `classification`, `reason`, `source`, and `confidence` (0..1).
 
 Optional environment variables:
 
@@ -61,6 +73,10 @@ Optional environment variables:
 - `KINETICOPS_AI_MODEL` (default: `meta/llama-4-maverick-17b-128e-instruct-fp8`)
 - `KINETICOPS_AI_TIMEOUT` (default: `8` seconds)
 - `KINETICOPS_AI_API_KEY` (falls back to `GITHUB_TOKEN`)
+- `KINETICOPS_LOCAL_CLASSIFIER_ENABLED` (`1` default, set `0` to force keyword-rule fallback)
+- `KINETICOPS_LOCAL_CLASSIFIER_MODEL` (default: `TinyLlama/TinyLlama-1.1B-Chat-v1.0`)
+- `KINETICOPS_LOCAL_CLASSIFIER_MAX_TOKENS` (default: `64`)
+- `KINETICOPS_LOCAL_CLASSIFIER_STRICT_JSON` (`1` default; strict parser for model output)
 
 Suggested GitHub Models setup:
 
