@@ -28,6 +28,16 @@ pip install -r requirements.txt
 python main.py
 ```
 
+## Demo script
+
+Run a scenario-based demo that prints event + generated intent:
+
+```bash
+python scripts/run_demo.py --scenario all
+```
+
+Other options: `mock`, `network`, `auth`, `storage`, `service`.
+
 Recommended Python version: 3.13.x
 
 Optional dev dependencies (tests + local tensor/NumPy interop):
