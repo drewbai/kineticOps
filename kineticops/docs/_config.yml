@@ -1,0 +1,11 @@
+title: kineticOps
+description: Project documentation
+# If you use a remote theme, you can set it here, or omit.
+# theme: jekyll-theme-cayman
+
+# Ensure all pages use the default layout so the favicon is applied
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
