@@ -28,6 +28,12 @@ SCENARIOS: dict[str, dict[str, Any]] = {
         "message": "unauthorized token expired",
         "value": 1,
     },
+    "cpu": {
+        "source": "demo",
+        "signal": "cpu_hotspot",
+        "message": "worker node CPU sustained above 95%",
+        "value": 95,
+    },
     "storage": {
         "source": "demo",
         "signal": "storage_warning",
@@ -40,17 +46,27 @@ SCENARIOS: dict[str, dict[str, Any]] = {
         "message": "api worker crashed with exit code 137",
         "value": 137,
     },
+    "queue": {
+        "source": "demo",
+        "signal": "queue_backlog",
+        "message": "deployment queue stalled with 42 pending jobs",
+        "value": 42,
+    },
 }
 
+DEFAULT_OUTPUT_PATH = Path("assets/demo-results.json")
 
-def run_single(name: str, event: dict[str, Any], rule_engine: RuleEngine) -> None:
-    """Evaluate one event and print a compact result block."""
+
+def run_single(name: str, event: dict[str, Any], rule_engine: RuleEngine) -> dict[str, Any]:
+    """Evaluate one event, print output, and return structured result."""
     intent = rule_engine.evaluate(event)
+    result = {"scenario": name, "event": event, "intent": intent}
     print(f"\n=== Scenario: {name} ===")
     print("event:")
     print(json.dumps(event, indent=2, sort_keys=True))
     print("intent:")
     print(json.dumps(intent, indent=2, sort_keys=True))
+    return result
 
 
 def parse_args() -> argparse.Namespace:
@@ -62,6 +78,13 @@ def parse_args() -> argparse.Namespace:
         default="all",
         help="Choose which scenario to run.",
     )
+    parser.add_argument(
+        "--output",
+        nargs="?",
+        type=Path,
+        const=DEFAULT_OUTPUT_PATH,
+        help="Optional path to write JSON results (defaults to assets/demo-results.json).",
+    )
     return parser.parse_args()
 
 
@@ -69,17 +92,20 @@ def main() -> None:
     """Execute one or more demo scenarios."""
     args = parse_args()
     rule_engine = RuleEngine()
+    results: list[dict[str, Any]] = []
 
     if args.scenario == "mock":
-        run_single("mock", fetch_mock_event(), rule_engine)
-        return
-
-    if args.scenario == "all":
+        results.append(run_single("mock", fetch_mock_event(), rule_engine))
+    elif args.scenario == "all":
         for name in sorted(SCENARIOS.keys()):
-            run_single(name, SCENARIOS[name], rule_engine)
-        return
+            results.append(run_single(name, SCENARIOS[name], rule_engine))
+    else:
+        results.append(run_single(args.scenario, SCENARIOS[args.scenario], rule_engine))
 
-    run_single(args.scenario, SCENARIOS[args.scenario], rule_engine)
+    if args.output is not None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(f"{json.dumps(results, indent=2, sort_keys=True)}\n", encoding="utf-8")
+        print(f"\nWrote demo results to: {args.output}")
 
 
 if __name__ == "__main__":

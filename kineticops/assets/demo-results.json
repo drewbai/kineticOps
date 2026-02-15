@@ -1,0 +1,134 @@
+[
+  {
+    "event": {
+      "message": "unauthorized token expired",
+      "signal": "auth_error",
+      "source": "demo",
+      "value": 1
+    },
+    "intent": {
+      "classification": "AuthFailure",
+      "confidence": 0.82,
+      "event": {
+        "message": "unauthorized token expired",
+        "signal": "auth_error",
+        "source": "demo",
+        "value": 1
+      },
+      "intent": "classify_event",
+      "reason": "keyword_auth_signal",
+      "source": "rules"
+    },
+    "scenario": "auth"
+  },
+  {
+    "event": {
+      "message": "worker node CPU sustained above 95%",
+      "signal": "cpu_hotspot",
+      "source": "demo",
+      "value": 95
+    },
+    "intent": {
+      "classification": "ServiceFailure",
+      "confidence": 0.55,
+      "event": {
+        "message": "worker node CPU sustained above 95%",
+        "signal": "cpu_hotspot",
+        "source": "demo",
+        "value": 95
+      },
+      "intent": "classify_event",
+      "reason": "default_service_fallback",
+      "source": "rules"
+    },
+    "scenario": "cpu"
+  },
+  {
+    "event": {
+      "message": "dns timeout connecting to db",
+      "signal": "network_error",
+      "source": "demo",
+      "value": 1
+    },
+    "intent": {
+      "classification": "NetworkIssue",
+      "confidence": 0.8,
+      "event": {
+        "message": "dns timeout connecting to db",
+        "signal": "network_error",
+        "source": "demo",
+        "value": 1
+      },
+      "intent": "classify_event",
+      "reason": "keyword_network_signal",
+      "source": "rules"
+    },
+    "scenario": "network"
+  },
+  {
+    "event": {
+      "message": "deployment queue stalled with 42 pending jobs",
+      "signal": "queue_backlog",
+      "source": "demo",
+      "value": 42
+    },
+    "intent": {
+      "classification": "ServiceFailure",
+      "confidence": 0.55,
+      "event": {
+        "message": "deployment queue stalled with 42 pending jobs",
+        "signal": "queue_backlog",
+        "source": "demo",
+        "value": 42
+      },
+      "intent": "classify_event",
+      "reason": "default_service_fallback",
+      "source": "rules"
+    },
+    "scenario": "queue"
+  },
+  {
+    "event": {
+      "message": "api worker crashed with exit code 137",
+      "signal": "service_down",
+      "source": "demo",
+      "value": 137
+    },
+    "intent": {
+      "classification": "ServiceFailure",
+      "confidence": 0.55,
+      "event": {
+        "message": "api worker crashed with exit code 137",
+        "signal": "service_down",
+        "source": "demo",
+        "value": 137
+      },
+      "intent": "classify_event",
+      "reason": "default_service_fallback",
+      "source": "rules"
+    },
+    "scenario": "service"
+  },
+  {
+    "event": {
+      "message": "filesystem capacity over 92%",
+      "signal": "storage_warning",
+      "source": "demo",
+      "value": 92
+    },
+    "intent": {
+      "classification": "StorageWarning",
+      "confidence": 0.78,
+      "event": {
+        "message": "filesystem capacity over 92%",
+        "signal": "storage_warning",
+        "source": "demo",
+        "value": 92
+      },
+      "intent": "classify_event",
+      "reason": "keyword_storage_signal",
+      "source": "rules"
+    },
+    "scenario": "storage"
+  }
+]

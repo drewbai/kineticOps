@@ -56,7 +56,17 @@ Run a scenario-based demo that prints event + generated intent:
 python scripts/run_demo.py --scenario all
 ```
 
-Other options: `mock`, `network`, `auth`, `storage`, `service`.
+Save the same demo results to JSON:
+
+```bash
+python scripts/run_demo.py --scenario all --output assets/demo-results.json
+```
+
+The output file is a JSON array of objects with `scenario`, `event`, and `intent` fields.
+
+Omit the path (just `--output`) to write to the default `assets/demo-results.json`.
+
+Other options: `mock`, `network`, `auth`, `cpu`, `storage`, `service`, `queue`.
 
 Pitch + live demo talk track: `docs/pitch-demo.md`.
 
