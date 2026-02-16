@@ -1,6 +1,6 @@
 {
   "editor.formatOnSave": true,
-  "python.defaultInterpreterPath": "python",
+  "python.defaultInterpreterPath": ".venv\\Scripts\\python.exe",
   "python.linting.enabled": true,
   "python.formatting.provider": "none",
   "ruff.enable": true,

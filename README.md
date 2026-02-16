@@ -72,6 +72,32 @@ Pitch + live demo talk track: `docs/pitch-demo.md`.
 
 Recommended Python version: 3.13.x
 
+## Cold-start setup (clone → venv → test)
+
+```bash
+git clone https://github.com/drewbai/kineticOps.git
+cd kineticOps
+
+# Create a local virtual environment (pick the variant for your OS)
+py -3.13 -m venv .venv          # Windows
+python3.13 -m venv .venv        # macOS/Linux
+
+# Activate it
+.\.venv\Scripts\activate       # PowerShell / CMD
+source .venv/bin/activate      # macOS/Linux shells
+
+# Install everything (runtime + dev/test)
+python -m pip install -r requirements.txt -r requirements-dev.txt
+
+# Prove the install
+python -m pytest
+
+# You're ready to hack
+python main.py
+```
+
+> Windows shortcut: `pwsh -ExecutionPolicy Bypass -File .\scripts\bootstrap_verify.ps1` does the same bootstrap + verify flow.
+
 Optional dev dependencies (tests + local tensor/NumPy interop):
 
 ```bash
