@@ -1,0 +1,15 @@
+apiVersion: ops.kineticops.dev/v1alpha1
+kind: KineticOpsLoop
+metadata:
+  name: sample-loop
+  namespace: default
+spec:
+  cadence:
+    checkIntervalSeconds: 30
+  remediation:
+    strategy: GitOps
+    gitOps:
+      repoURL: https://example.com/infra.git
+      targetBranch: main
+      deploymentPath: clusters/dev
+      author: kinetic-operator

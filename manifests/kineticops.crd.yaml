@@ -1,0 +1,367 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: kineticopsloops.ops.kineticops.dev
+  labels:
+    app.kubernetes.io/name: kineticops
+    app.kubernetes.io/part-of: kineticops
+spec:
+  group: ops.kineticops.dev
+  scope: Namespaced
+  names:
+    plural: kineticopsloops
+    singular: kineticopsloop
+    kind: KineticOpsLoop
+    listKind: KineticOpsLoopList
+    shortNames:
+      - kol
+      - koloop
+    categories:
+      - all
+      - kineticops
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+        - name: Strategy
+          type: string
+          jsonPath: .spec.remediation.strategy
+        - name: Interval
+          type: string
+          jsonPath: .spec.cadence.checkIntervalSeconds
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          description: >-
+            Defines the declarative control loop for KineticOps drift detection,
+            AI-assisted remediation planning, GitOps patch generation, and rollout verification.
+          properties:
+            spec:
+              type: object
+              required:
+                - cadence
+                - remediation
+              properties:
+                cadence:
+                  type: object
+                  description: Control loop timing configuration.
+                  required:
+                    - checkIntervalSeconds
+                  properties:
+                    checkIntervalSeconds:
+                      type: integer
+                      minimum: 10
+                      description: Seconds between drift detection ticks.
+                    jitterPercentage:
+                      type: integer
+                      minimum: 0
+                      maximum: 100
+                      description: Optional randomization applied to scheduling.
+                target:
+                  type: object
+                  description: Target cluster/namespace selection for verification hooks.
+                  properties:
+                    namespaceSelector:
+                      type: object
+                      description: Namespaces to scope drift evaluation.
+                      properties:
+                        matchLabels:
+                          type: object
+                          additionalProperties:
+                            type: string
+                        matchExpressions:
+                          type: array
+                          items:
+                            type: object
+                            required:
+                              - key
+                              - operator
+                            properties:
+                              key:
+                                type: string
+                              operator:
+                                type: string
+                                enum:
+                                  - In
+                                  - NotIn
+                                  - Exists
+                                  - DoesNotExist
+                              values:
+                                type: array
+                                items:
+                                  type: string
+                    clusterRef:
+                      type: object
+                      description: Optional reference for out-of-cluster verification.
+                      properties:
+                        kubeconfigSecretRef:
+                          type: object
+                          required:
+                            - name
+                          properties:
+                            name:
+                              type: string
+                            key:
+                              type: string
+                telemetry:
+                  type: object
+                  description: Telemetry sources used for drift signals.
+                  properties:
+                    sources:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - type
+                        properties:
+                          name:
+                            type: string
+                          type:
+                            type: string
+                            description: e.g. prometheus, k8sEvents, custom-webhook.
+                          intervalSeconds:
+                            type: integer
+                            minimum: 5
+                          endpoint:
+                            type: string
+                          selector:
+                            type: object
+                            description: Label selector applied to ingested metrics/events.
+                            properties:
+                              matchLabels:
+                                type: object
+                                additionalProperties:
+                                  type: string
+                              matchExpressions:
+                                type: array
+                                items:
+                                  type: object
+                                  required:
+                                    - key
+                                    - operator
+                                  properties:
+                                    key:
+                                      type: string
+                                    operator:
+                                      type: string
+                                      enum:
+                                        - In
+                                        - NotIn
+                                        - Exists
+                                        - DoesNotExist
+                                    values:
+                                      type: array
+                                      items:
+                                        type: string
+                driftPolicies:
+                  type: array
+                  description: Declarative drift checks across target resources.
+                  items:
+                    type: object
+                    required:
+                      - name
+                      - resource
+                    properties:
+                      name:
+                        type: string
+                      resource:
+                        type: object
+                        required:
+                          - apiVersion
+                          - kind
+                        properties:
+                          apiVersion:
+                            type: string
+                          kind:
+                            type: string
+                          namespace:
+                            type: string
+                          selector:
+                            type: object
+                            description: Match specific workloads for drift inspection.
+                            properties:
+                              matchLabels:
+                                type: object
+                                additionalProperties:
+                                  type: string
+                      checks:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            fieldPath:
+                              type: string
+                            expectedValue:
+                              type: string
+                            tolerance:
+                              type: number
+                            comparison:
+                              type: string
+                              enum:
+                                - Equal
+                                - NotEqual
+                                - GreaterThan
+                                - LessThan
+                      remediationHints:
+                        type: array
+                        items:
+                          type: string
+                remediation:
+                  type: object
+                  description: Strategy for generating and applying fixes.
+                  required:
+                    - strategy
+                  properties:
+                    strategy:
+                      type: string
+                      enum:
+                        - GitOps
+                        - Direct
+                    dryRun:
+                      type: boolean
+                    gitOps:
+                      type: object
+                      description: GitOps specific configuration when strategy is GitOps.
+                      properties:
+                        repoURL:
+                          type: string
+                        targetBranch:
+                          type: string
+                        deploymentPath:
+                          type: string
+                        author:
+                          type: string
+                        credentialsSecretRef:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                            key:
+                              type: string
+                    rolloutPolicy:
+                      type: object
+                      properties:
+                        maxParallelRemediations:
+                          type: integer
+                          minimum: 1
+                        pauseSeconds:
+                          type: integer
+                          minimum: 0
+                        verificationGates:
+                          type: array
+                          items:
+                            type: string
+                verification:
+                  type: object
+                  description: Post-remediation verification probes.
+                  properties:
+                    probes:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - name
+                          - type
+                        properties:
+                          name:
+                            type: string
+                          type:
+                            type: string
+                            enum:
+                              - Kubernetes
+                              - HTTP
+                              - Custom
+                          timeoutSeconds:
+                            type: integer
+                            minimum: 1
+                          successThreshold:
+                            type: integer
+                            minimum: 1
+                          failureThreshold:
+                            type: integer
+                            minimum: 1
+                          config:
+                            type: object
+                            additionalProperties:
+                              type: string
+                aiPlanner:
+                  type: object
+                  description: Configuration for AI-assisted intent planning.
+                  properties:
+                    mode:
+                      type: string
+                      enum:
+                        - disabled
+                        - local
+                        - remote
+                    endpoint:
+                      type: string
+                    model:
+                      type: string
+                    timeoutSeconds:
+                      type: integer
+                      minimum: 1
+                    credentialsSecretRef:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        key:
+                          type: string
+            status:
+              type: object
+              description: Observed state reported by the KineticOps controller.
+              properties:
+                phase:
+                  type: string
+                observedGeneration:
+                  type: integer
+                conditions:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - type
+                      - status
+                      - lastTransitionTime
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                      reason:
+                        type: string
+                      message:
+                        type: string
+                lastCheckTime:
+                  type: string
+                  format: date-time
+                lastRemediation:
+                  type: object
+                  properties:
+                    startedAt:
+                      type: string
+                      format: date-time
+                    completedAt:
+                      type: string
+                      format: date-time
+                    driftSummary:
+                      type: string
+                    appliedStrategy:
+                      type: string
+                    gitOpsCommit:
+                      type: string
+                    verifierSummary:
+                      type: string

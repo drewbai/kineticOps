@@ -151,3 +151,10 @@ python main.py
 
 - This repository intentionally contains placeholders and TODOs only.
 - No production business logic is implemented yet; AI integration is scaffold-level only.
+
+## Kubernetes operator (alpha)
+
+- A Go-based controller scaffold lives in `operator/` with the `KineticOpsLoop` API definitions.
+- Build or test locally with `cd operator && go mod tidy && go build ./...` (requires Go 1.22+).
+- Deploy onto a cluster after applying `manifests/kineticops.crd.yaml`; the manager binary exposes `/metrics`, `/healthz`, and `/readyz`.
+- The controller can talk to the Python runtime by running `python -m kinetic_core.http_gateway --port 8085` and starting the Go manager with `--orchestrator-endpoint http://localhost:8085`.
