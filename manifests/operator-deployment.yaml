@@ -1,0 +1,112 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kineticops-system
+  labels:
+    app.kubernetes.io/name: kineticops
+    app.kubernetes.io/part-of: kineticops
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kineticops-controller-manager
+  namespace: kineticops-system
+  labels:
+    app.kubernetes.io/name: kineticops
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/part-of: kineticops
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kineticops-manager-role
+  labels:
+    app.kubernetes.io/name: kineticops
+    app.kubernetes.io/component: controller
+rules:
+  - apiGroups: ["ops.kineticops.dev"]
+    resources: ["kineticopsloops"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: ["ops.kineticops.dev"]
+    resources: ["kineticopsloops/status"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: ["ops.kineticops.dev"]
+    resources: ["kineticopsloops/finalizers"]
+    verbs: ["update"]
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets", "events"]
+    verbs: ["create", "get", "list", "patch", "update", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kineticops-manager-rolebinding
+  labels:
+    app.kubernetes.io/name: kineticops
+    app.kubernetes.io/component: controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kineticops-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: kineticops-controller-manager
+    namespace: kineticops-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kineticops-controller-manager
+  namespace: kineticops-system
+  labels:
+    app.kubernetes.io/name: kineticops
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/part-of: kineticops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kineticops
+      app.kubernetes.io/component: controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kineticops
+        app.kubernetes.io/component: controller
+    spec:
+      serviceAccountName: kineticops-controller-manager
+      containers:
+        - name: manager
+          image: ghcr.io/drewbai/kineticops-operator:dev
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--metrics-bind-address=:8080"
+            - "--health-probe-bind-address=:8081"
+            - "--orchestrator-endpoint=$(ORCHESTRATOR_ENDPOINT)"
+          env:
+            - name: ORCHESTRATOR_ENDPOINT
+              value: "http://localhost:8085"
+          ports:
+            - containerPort: 8080
+              name: metrics
+            - containerPort: 8081
+              name: probes
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi

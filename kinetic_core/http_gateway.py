@@ -5,13 +5,14 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
-from action_engine.gitops_committer import GitOpsCommitter
-from action_engine.patch_generator import build_patch
+from action_engine.gitops_committer import GitOpsCommitResult, GitOpsCommitter, GitOpsConfig
+from action_engine.patch_generator import PatchArtifact, build_patch
 from interpreter.rule_engine import RuleEngine
 
 
@@ -40,7 +41,6 @@ class ControlLoopService:
         }
 
         intent = self.rule_engine.evaluate(event_payload)
-        patch = build_patch(intent)
         strategy = (spec.get("remediation") or {}).get("strategy", "Direct")
 
         metadata = {
@@ -48,12 +48,18 @@ class ControlLoopService:
             "reason": intent.get("reason"),
             "source": intent.get("source", "rule-engine"),
         }
+        gitops_result: GitOpsCommitResult | None = None
         if strategy == "GitOps":
-            self.gitops_committer.commit(patch, metadata)
+            artifact = self._build_patch_artifact(intent, loop)
+            config = self._build_gitops_config(spec.get("remediation", {}).get("gitOps"))
+            gitops_result = self.gitops_committer.commit(artifact, config, metadata)
 
         drift_detected = intent.get("intent") not in {"noop", "healthy"}
         summary = intent.get("reason", "evaluated intent")
         completed = _now_iso()
+        loop_name = metadata.get("loop")
+        git_commit = (gitops_result.commit if gitops_result else loop_name) or "pending"
+        verifier_summary = gitops_result.verification if gitops_result else "verification stub"
         response: dict[str, Any] = {
             "phase": "Drifted" if drift_detected else "Healthy",
             "message": summary,
@@ -64,11 +70,32 @@ class ControlLoopService:
                 "completedAt": completed,
                 "driftSummary": summary,
                 "appliedStrategy": strategy,
-                "gitOpsCommit": metadata["loop"],
-                "verifierSummary": "verification stub",
+                "gitOpsCommit": git_commit,
+                "verifierSummary": verifier_summary,
             },
         }
         return response
+
+    def _build_patch_artifact(self, intent: dict[str, Any], loop: dict[str, Any]) -> PatchArtifact:
+        loop_name = loop.get("metadata", {}).get("name")
+        return build_patch(intent, loop_name=loop_name)
+
+    def _build_gitops_config(self, spec: dict[str, Any] | None) -> GitOpsConfig:
+        spec = spec or {}
+        repo_url = spec.get("repoURL") or os.getenv("KINETICOPS_GITOPS_REPO")
+        if not repo_url:
+            raise ValueError("gitOps.repoURL is required for GitOps strategy")
+        target_branch = spec.get("targetBranch") or "main"
+        deployment_path = spec.get("deploymentPath") or ""
+        author = spec.get("author") or "kinetic-operator"
+        author_email = os.getenv("KINETICOPS_GITOPS_AUTHOR_EMAIL", "kinetic-operator@example.com")
+        return GitOpsConfig(
+            repo_url=repo_url,
+            target_branch=target_branch,
+            deployment_path=deployment_path,
+            author_name=author,
+            author_email=author_email,
+        )
 
 
 class LoopRequestHandler(BaseHTTPRequestHandler):

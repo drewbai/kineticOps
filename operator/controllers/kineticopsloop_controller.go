@@ -9,10 +9,12 @@ import (
 
 	opsv1alpha1 "github.com/drewbai/kineticOps/operator/api/v1alpha1"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -24,6 +26,12 @@ const (
 
 	conditionReady = "LoopReady"
 	conditionDrift = "DriftDetected"
+
+	eventReasonSpecInvalid    = "SpecInvalid"
+	eventReasonExecutionError = "ExecutionFailed"
+	eventReasonDriftDetected  = "DriftObserved"
+	eventReasonNoDrift        = "NoDrift"
+	eventReasonLoopTick       = "ReconcileTick"
 
 	phasePending     = "Pending"
 	phaseReconciling = "Reconciling"
@@ -61,6 +69,7 @@ type KineticOpsLoopReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
 	Orchestrator LoopOrchestrator
+	Recorder     record.EventRecorder
 }
 
 //+kubebuilder:rbac:groups=ops.kineticops.dev,resources=kineticopsloops,verbs=get;list;watch;create;update;patch;delete
@@ -103,6 +112,7 @@ func (r *KineticOpsLoopReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}); errStatus != nil {
 			return ctrl.Result{}, errStatus
 		}
+		r.recordEvent(&loop, corev1.EventTypeWarning, eventReasonSpecInvalid, err.Error())
 		// Requeue so the user gets another status update if they change the spec.
 		return ctrl.Result{RequeueAfter: time.Minute}, nil
 	}
@@ -118,6 +128,7 @@ func (r *KineticOpsLoopReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err := r.patchStatus(ctx, &loop, statusPatch); err != nil {
 		return ctrl.Result{}, err
 	}
+	r.recordEvent(&loop, corev1.EventTypeNormal, eventReasonLoopTick, "control loop tick started")
 
 	var execResult LoopExecutionResult
 	var execErr error
@@ -135,6 +146,7 @@ func (r *KineticOpsLoopReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}); err != nil {
 			return ctrl.Result{}, err
 		}
+		r.recordEvent(&loop, corev1.EventTypeWarning, eventReasonExecutionError, execErr.Error())
 		return ctrl.Result{RequeueAfter: requeueAfter}, execErr
 	}
 
@@ -154,6 +166,15 @@ func (r *KineticOpsLoopReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}); err != nil {
 		return ctrl.Result{}, err
+	}
+	if execResult.DriftDetected {
+		r.recordEvent(&loop, corev1.EventTypeNormal, eventReasonDriftDetected, execResult.DriftSummary)
+	} else {
+		msg := execResult.Message
+		if msg == "" {
+			msg = "no drift reported"
+		}
+		r.recordEvent(&loop, corev1.EventTypeNormal, eventReasonNoDrift, msg)
 	}
 
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
@@ -214,6 +235,13 @@ func (r *KineticOpsLoopReconciler) setCondition(status *opsv1alpha1.KineticOpsLo
 		Message:            message,
 		LastTransitionTime: now,
 	})
+}
+
+func (r *KineticOpsLoopReconciler) recordEvent(loop *opsv1alpha1.KineticOpsLoop, eventType, reason, message string) {
+	if r.Recorder == nil {
+		return
+	}
+	r.Recorder.Event(loop, eventType, reason, message)
 }
 
 // SetupWithManager wires the controller into the manager.

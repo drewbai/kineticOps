@@ -158,3 +158,16 @@ python main.py
 - Build or test locally with `cd operator && go mod tidy && go build ./...` (requires Go 1.22+).
 - Deploy onto a cluster after applying `manifests/kineticops.crd.yaml`; the manager binary exposes `/metrics`, `/healthz`, and `/readyz`.
 - The controller can talk to the Python runtime by running `python -m kinetic_core.http_gateway --port 8085` and starting the Go manager with `--orchestrator-endpoint http://localhost:8085`.
+- A lightweight namespace + RBAC + deployment bundle lives at `manifests/operator-deployment.yaml`; apply it after the CRD to run the controller in-cluster.
+- Each reconcile tick now records Kubernetes Events (success/failure/drift summaries), so `kubectl describe kineticopsloop <name>` surfaces the loop history without tailing logs.
+- GitOps commits: set `spec.remediation.gitOps.repoURL/targetBranch/deploymentPath` in the `KineticOpsLoop` resource or export `KINETICOPS_GITOPS_REPO` (+ optional `KINETICOPS_GITOPS_LOCAL_REPO` for local testing). The Python gateway pushes directly to GitHub and refuses to mark remediation healthy until the repo workspace is clean.
+
+### Local Kind cluster (dev shortcut)
+
+1. Start Docker Desktop (Kind shells out to the Docker daemon).
+2. Download Kind (Windows example): `curl -Lo kind.exe https://kind.sigs.k8s.io/dl/v0.23.0/kind-windows-amd64` and put it on your `PATH` (or `choco install kind`).
+3. Create the cluster: `kind create cluster --name kineticops`.
+4. Point kubectl at it and verify: `kubectl cluster-info --context kind-kineticops`.
+5. When you're done hacking: `kind delete cluster --name kineticops`.
+
+Reference: [Kind quick-start](https://kind.sigs.k8s.io/docs/user/quick-start/)
