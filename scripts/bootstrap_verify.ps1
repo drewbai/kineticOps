@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $venvPython = ".\.venv\Scripts\python.exe"
 
 if (-not (Test-Path $venvPython)) {
-    py -3.13 -m venv .venv
+    py -3.11 -m venv .venv
 }
 
 & $venvPython -m pip install --upgrade pip

@@ -41,7 +41,7 @@ flowchart TD
 ## Run the project
 
 ```bash
-py -3.13 -m venv .venv
+py -3.11 -m venv .venv
 # Windows: .venv\\Scripts\\activate
 # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
@@ -70,7 +70,7 @@ Other options: `mock`, `network`, `auth`, `cpu`, `storage`, `service`, `queue`.
 
 Pitch + live demo talk track: `docs/pitch-demo.md`.
 
-Recommended Python version: 3.13.x
+Recommended Python version: 3.11.x
 
 ## Cold-start setup (clone → venv → test)
 
@@ -79,8 +79,8 @@ git clone https://github.com/drewbai/kineticOps.git
 cd kineticOps
 
 # Create a local virtual environment (pick the variant for your OS)
-py -3.13 -m venv .venv          # Windows
-python3.13 -m venv .venv        # macOS/Linux
+py -3.11 -m venv .venv          # Windows
+python3.11 -m venv .venv        # macOS/Linux
 
 # Activate it
 .\.venv\Scripts\activate       # PowerShell / CMD
