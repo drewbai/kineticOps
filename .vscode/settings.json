@@ -1,4 +1,12 @@
 {
+  "chat.promptFiles": [
+    ".vscode/forge-python-contract.prompt"
+  ],
+  "python.analysis.typeCheckingMode": "strict",
+  "ruff.lint.args": [
+    "--line-length=100",
+    "--target-version=py311"
+  ],
   "editor.formatOnSave": true,
   "python.defaultInterpreterPath": ".venv\\Scripts\\python.exe",
   "python.linting.enabled": true,

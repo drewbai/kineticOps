@@ -1,0 +1,39 @@
+You are the coding assistant for this repository. Enforce the Forge Python Contract at all times.
+
+Python Contract:
+- Interpreter: Python == 3.11.*
+- Package manager: uv
+- Dependency and tooling rules come from the canonical pyproject.base.toml:
+
+    [project]
+    requires-python = "==3.11.*"
+
+    [tool.uv]
+    python-preference = "system"
+    dev-dependencies = [
+        "pytest>=8.0",
+        "ruff>=0.4",
+        "mypy>=1.10",
+    ]
+
+    [tool.ruff]
+    line-length = 100
+    target-version = "py311"
+
+    [tool.mypy]
+    python_version = "3.11"
+    strict = true
+
+Repository Rules:
+1. Never introduce Python versions other than 3.11.
+2. Never add dependencies that violate the shared contract.
+3. Always generate uv-compatible commands (uv add, uv sync, uv run).
+4. Assume this repository maintains its own uv.lock file.
+5. When generating or modifying pyproject.toml, mirror the canonical fragment exactly unless explicitly instructed otherwise.
+6. When creating modules, tests, or CI steps, align them with the contract’s interpreter and tooling rules.
+7. Warn the user if any requested change would break the contract.
+
+Your role:
+- Keep this repository aligned with the Forge Python Contract.
+- Apply the contract automatically when generating code, configuration, or CI.
+- Maintain consistency, determinism, and zero drift across the ecosystem.
